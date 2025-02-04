@@ -25,9 +25,9 @@ def load_texture(path, size):
     return pygame.transform.scale(texture, size)
 
 # Текстуры
-block_texture = load_texture("platform.png", (40, 40))
-player_texture = load_texture("player.png", (40, 40))
-enemy_texture = load_texture("enemy.png", (40, 40))
+block_texture = load_texture("sprites/platform.png", (40, 40))
+player_texture = load_texture("sprites/player.png", (40, 40))
+enemy_texture = load_texture("sprites/enemy.png", (40, 40))
 
 # Шрифт для счета и меню
 font = pygame.font.Font(None, 36)
