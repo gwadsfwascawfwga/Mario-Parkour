@@ -244,6 +244,9 @@ def main():
     game_over = False
     camera_y = 0
 
+    # Базовый шанс появления врага
+    enemy_spawn_chance = 0.3  # 30% шанс появления врага
+
     while running:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -300,9 +303,10 @@ def main():
                 all_sprites.add(new_platforms)
                 platforms.add(new_platforms)
 
-                # Генерация врагов
+                # Генерация врагов с учетом текущего счета
+                current_enemy_spawn_chance = enemy_spawn_chance + (player.score // 100) * 0.01
                 for plat in new_platforms:
-                    if random.random() < 0.3:  # 30% шанс появления врага на платформе
+                    if random.random() < current_enemy_spawn_chance:  # Шанс появления врага зависит от счета
                         enemy = Enemy(plat.rect.x + 30, plat.rect.y - 50)
                         all_sprites.add(enemy)
                         enemies.add(enemy)
