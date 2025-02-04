@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 
 # Инициализация PyGame
 pygame.init()
@@ -19,15 +20,35 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Mario Parkour")
 clock = pygame.time.Clock()
 
-# Загрузка текстур
-def load_texture(path, size):
-    texture = pygame.image.load(path)
-    return pygame.transform.scale(texture, size)
+# Сохранение рекорда
+def save_highscore(score):
+    with open("highscore.txt", "w") as f:
+        f.write(str(score))
 
-# Текстуры
-block_texture = load_texture("sprites/platform.png", (40, 40))
-player_texture = load_texture("sprites/player.png", (40, 40))
-enemy_texture = load_texture("sprites/enemy.png", (40, 40))
+def load_highscore():
+    try:
+        with open("highscore.txt", "r") as f:
+            return int(f.read())
+    except:
+        return 0
+
+# Загрузка текстур
+def load_textures(path, size, flip=False):
+    textures = []
+    for filename in sorted(os.listdir(path)):
+        texture = pygame.image.load(os.path.join(path, filename))
+        texture = pygame.transform.scale(texture, size)
+        if flip:
+            texture = pygame.transform.flip(texture, True, False)
+        textures.append(texture)
+    return textures
+
+# Текстуры для анимаций
+block_texture = pygame.transform.scale(pygame.image.load("sprites/platform.png"), (40, 40))
+player_idle = [pygame.transform.scale(pygame.image.load("sprites/player.png"), (40, 40))]  # Основной спрайт
+player_run_right = load_textures("sprites/animation", (40, 40))
+player_run_left = load_textures("sprites/animation", (40, 40), flip=True)
+enemy_texture = pygame.transform.scale(pygame.image.load("sprites/enemy.png"), (40, 40))
 
 # Шрифт для счета и меню
 font = pygame.font.Font(None, 36)
@@ -36,7 +57,14 @@ font = pygame.font.Font(None, 36)
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = player_texture
+        self.animations = {
+            "idle": player_idle,
+            "right": player_run_right,
+            "left": player_run_left
+        }
+        self.current_anim = "idle"
+        self.anim_index = 0
+        self.image = self.animations[self.current_anim][self.anim_index]
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH // 2, HEIGHT - 100)
         self.vel_y = 0
@@ -45,14 +73,31 @@ class Player(pygame.sprite.Sprite):
         self.jump_power = -15
         self.speed = 5
         self.score = 0
+        self.last_update = pygame.time.get_ticks()
+        self.anim_delay = 100
 
     def update(self):
+        now = pygame.time.get_ticks()
+        # Обновление анимации
+        if now - self.last_update > self.anim_delay:
+            self.last_update = now
+            self.anim_index = (self.anim_index + 1) % len(self.animations[self.current_anim])
+            self.image = self.animations[self.current_anim][self.anim_index]
+
         # Гравитация
         self.vel_y += 0.5
         self.rect.y += self.vel_y
 
         # Движение по горизонтали
         self.rect.x += self.vel_x
+
+        # Определение направления анимации
+        if self.vel_x > 0:
+            self.current_anim = "right"
+        elif self.vel_x < 0:
+            self.current_anim = "left"
+        else:
+            self.current_anim = "idle"
 
         # Ограничение на выход за границы экрана
         if self.rect.left < 0:
@@ -125,18 +170,56 @@ def generate_platforms(y_start):
         platforms.append(Platform(x, y, width))
     return platforms
 
-# Функция для отображения меню
-def show_menu():
-    screen.fill(WHITE)
-    title_text = font.render("Mario Parkour", True, BLACK)
-    restart_text = font.render("Press R to Restart", True, BLACK)
-    quit_text = font.render("Press Q to Quit", True, BLACK)
+# Функция для отображения стартового меню
+def start_menu(highscore):
+    while True:
+        screen.fill(WHITE)
+        title_text = font.render("Mario Parkour", True, BLACK)
+        hs_text = font.render(f"High Score: {highscore}", True, BLACK)
+        start_text = font.render("Press S to Start", True, BLACK)
+        quit_text = font.render("Press Q to Quit", True, BLACK)
 
-    screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 3))
-    screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2))
-    screen.blit(quit_text, (WIDTH // 2 - quit_text.get_width() // 2, HEIGHT // 2 + 50))
+        screen.blit(title_text, (WIDTH//2 - title_text.get_width()//2, HEIGHT//3))
+        screen.blit(hs_text, (WIDTH//2 - hs_text.get_width()//2, HEIGHT//2 - 50))
+        screen.blit(start_text, (WIDTH//2 - start_text.get_width()//2, HEIGHT//2))
+        screen.blit(quit_text, (WIDTH//2 - quit_text.get_width()//2, HEIGHT//2 + 50))
 
-    pygame.display.flip()
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_s]:
+                return
+            if keys[pygame.K_q]:
+                pygame.quit()
+                return
+
+# Функция для отображения меню после проигрыша
+def game_over_menu():
+    while True:
+        screen.fill(WHITE)
+        title_text = font.render("Game Over", True, BLACK)
+        restart_text = font.render("Press R to Restart", True, BLACK)
+        quit_text = font.render("Press Q to Quit", True, BLACK)
+
+        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 3))
+        screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2))
+        screen.blit(quit_text, (WIDTH // 2 - quit_text.get_width() // 2, HEIGHT // 2 + 50))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_r]:  # Перезапуск игры
+                return True
+            if keys[pygame.K_q]:  # Выйти из игры
+                return False
 
 # Основной игровой цикл
 def main():
@@ -236,16 +319,19 @@ def main():
             pygame.display.flip()
 
         else:
+            if player.score > highscore:
+                save_highscore(player.score)
+
             # Меню после проигрыша
-            show_menu()
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_r]:  # Перезапуск игры
-                main()
-            if keys[pygame.K_q]:  # Выход из игры
-                running = False
+            if game_over_menu():
+                main()  # Перезапуск игры
+            else:
+                running = False  # Выход из игры
 
     pygame.quit()
 
 # Запуск игры
 if __name__ == "__main__":
-    main()
+    highscore = load_highscore()
+    start_menu(highscore)
+    main()  # Запускаем игру
