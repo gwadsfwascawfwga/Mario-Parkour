@@ -268,8 +268,6 @@ def main():
     platforms = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
 
-    counters = [0, 0, 0, 0]
-
     # Создание игрока
     player = Player()
     all_sprites.add(player)
@@ -340,28 +338,8 @@ def main():
                 if sprite.rect.top > HEIGHT:
                     sprite.kill()
 
-            # Звук ачивки при 1000/2500/5000
-
-            if player.score >= 500 and counters[0] == 0:
-                counters[0] += 1
-                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
-                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
-                sound_checkpoint.play()
-
-            if player.score >= 1000 and counters[1] == 0:
-                counters[1] += 1
-                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
-                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
-                sound_checkpoint.play()
-
-            if player.score >= 2500 and counters[2] == 0:
-                counters[2] += 1
-                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
-                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
-                sound_checkpoint.play()
-
-            if player.score >= 5000 and counters[2] == 0:
-                counters[3] += 1
+            # Проверка на каждую тысячу
+            if player.score % 1000 == 0 and player.score != 0:
                 sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
                 pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
                 sound_checkpoint.play()
