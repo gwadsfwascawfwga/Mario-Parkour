@@ -34,10 +34,12 @@ sound_game_over.set_volume(0.1)
 sound_checkpoint = pygame.mixer.Sound("sounds/points.mp3")  # Звук достижения контрольной точки
 sound_checkpoint.set_volume(0.3)
 
+
 # Сохранение рекорда
 def save_highscore(score):
     with open("highscore.txt", "w") as f:
         f.write(str(score))
+
 
 def load_highscore():
     try:
@@ -45,6 +47,7 @@ def load_highscore():
             return int(f.read())
     except:
         return 0
+
 
 # Загрузка текстур
 def load_textures(path, size, flip=False):
@@ -56,6 +59,7 @@ def load_textures(path, size, flip=False):
             texture = pygame.transform.flip(texture, True, False)
         textures.append(texture)
     return textures
+
 
 # Текстуры для анимаций
 block_texture = pygame.transform.scale(pygame.image.load("sprites/platform.png"), (40, 40))
@@ -71,7 +75,8 @@ player_jump_idle = [pygame.transform.scale(pygame.image.load("sprites/jump_idle.
 player_jump_move = [pygame.transform.scale(pygame.image.load("sprites/jump_move.png"), (40, 40))]  # Прыжок в движении
 
 # Шрифт для счета и меню
-font = pygame.font.Font(None, 36)
+font = pygame.font.Font("font/supermario_font.otf", 32)
+
 
 # Класс игрока
 class Player(pygame.sprite.Sprite):
@@ -162,6 +167,7 @@ class Player(pygame.sprite.Sprite):
         if self.vel_y == 0 and self.on_ground:
             self.is_jumping = False  # Сбрасываем флаг прыжка
 
+
 # Класс платформы
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, width=3, height=1):
@@ -175,6 +181,7 @@ class Platform(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
 
 # Класс врага
 class Enemy(pygame.sprite.Sprite):
@@ -202,6 +209,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.rect.left < 0 or self.rect.right > WIDTH:
             self.vel_x *= -1
 
+
 # Класс монетки
 class Coin(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -213,24 +221,25 @@ class Coin(pygame.sprite.Sprite):
     def update(self):
         pass
 
+
 class CloudBackground:
     def __init__(self):
         self.cloud_image = cloud_texture
         self.cloud_width = self.cloud_image.get_width()
         self.cloud_height = self.cloud_image.get_height()
-        
+
         # Создаем большое изображение фона (2x2 облака)
         self.bg_width = WIDTH * 2
         self.bg_height = HEIGHT * 2
-        
+
         # Создаем поверхность с поддержкой альфа-канала
         self.background = pygame.Surface((self.bg_width, self.bg_height), pygame.SRCALPHA)
-        
+
         # Заполняем фон облаками
         for x in range(0, self.bg_width, self.cloud_width):
             for y in range(0, self.bg_height, self.cloud_height):
                 self.background.blit(self.cloud_image, (x, y))
-        
+
         self.bg_x = 0
         self.bg_y = 0
         self.cloud_speed_x = 1
@@ -262,6 +271,7 @@ class CloudBackground:
         if self.bg_x < 0 and self.bg_y < 0:
             screen.blit(self.background, (self.bg_x + self.bg_width, self.bg_y + self.bg_height))
 
+
 # Функция для генерации платформ и монеток
 def generate_platforms(y_start, player_x):
     platforms = []
@@ -281,6 +291,7 @@ def generate_platforms(y_start, player_x):
 
     return platforms, coins
 
+
 # Функция для отображения стартового меню
 def start_menu(highscore):
     while True:
@@ -293,10 +304,10 @@ def start_menu(highscore):
         start_text = font.render("Press S to Start", True, WHITE)
         quit_text = font.render("Press Q to Quit", True, WHITE)
 
-        screen.blit(title_text, (WIDTH//2 - title_text.get_width()//2, HEIGHT//3))
-        screen.blit(hs_text, (WIDTH//2 - hs_text.get_width()//2, HEIGHT//2 - 50))
-        screen.blit(start_text, (WIDTH//2 - start_text.get_width()//2, HEIGHT//2))
-        screen.blit(quit_text, (WIDTH//2 - quit_text.get_width()//2, HEIGHT//2 + 50))
+        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 3))
+        screen.blit(hs_text, (WIDTH // 2 - hs_text.get_width() // 2, HEIGHT // 2 - 50))
+        screen.blit(start_text, (WIDTH // 2 - start_text.get_width() // 2, HEIGHT // 2))
+        screen.blit(quit_text, (WIDTH // 2 - quit_text.get_width() // 2, HEIGHT // 2 + 50))
 
         pygame.display.flip()
 
@@ -311,18 +322,21 @@ def start_menu(highscore):
                 pygame.quit()
                 return
 
+
 # Функция для отображения меню после проигрыша
-def game_over_menu():
+def game_over_menu(score):
     while True:
         pygame.mixer.music.pause()
+        bg_lose = pygame.image.load("sprites/bg_lose.png")
         screen.fill(WHITE)
-        bg_loader = pygame.image.load("sprites/bg_loader.png")
-        screen.blit(bg_loader, (0, 0))
+        screen.blit(bg_lose, (0, 0))
         title_text = font.render("Game Over", True, WHITE)
+        score_text = font.render(f"Score: {score}", True, WHITE)
         restart_text = font.render("Press R to Restart", True, WHITE)
         quit_text = font.render("Press Q to Quit", True, WHITE)
 
         screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 3))
+        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2 - 50))
         screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2))
         screen.blit(quit_text, (WIDTH // 2 - quit_text.get_width() // 2, HEIGHT // 2 + 50))
 
@@ -337,6 +351,7 @@ def game_over_menu():
                 return True
             if keys[pygame.K_q]:  # Выйти из игры
                 return False
+
 
 # Основной игровой цикл
 def main():
@@ -471,12 +486,13 @@ def main():
                 save_highscore(player.score)
 
             # Меню после проигрыша
-            if game_over_menu():
+            if game_over_menu(player.score):
                 main()  # Перезапуск игры
             else:
                 running = False  # Выход из игры
 
     pygame.quit()
+
 
 # Запуск игры
 if __name__ == "__main__":
