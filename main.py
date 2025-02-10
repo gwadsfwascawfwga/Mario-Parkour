@@ -51,8 +51,8 @@ player_run_left = load_textures("sprites/animation", (40, 40), flip=True)
 enemy_texture = pygame.transform.scale(pygame.image.load("sprites/enemy.png"), (40, 40))
 
 # Загрузка текстур для прыжка
-player_jump_idle = pygame.transform.scale(pygame.image.load("sprites/jump_idle.png"), (40, 40))  # Прыжок на месте
-player_jump_move = pygame.transform.scale(pygame.image.load("sprites/jump_move.png"), (40, 40))  # Прыжок в движении
+player_jump_idle = [pygame.transform.scale(pygame.image.load("sprites/jump_idle.png"), (40, 40))]  # Прыжок на месте
+player_jump_move = [pygame.transform.scale(pygame.image.load("sprites/jump_move.png"), (40, 40))]  # Прыжок в движении
 
 # Шрифт для счета и меню
 font = pygame.font.Font(None, 36)
@@ -65,8 +65,8 @@ class Player(pygame.sprite.Sprite):
             "idle": player_idle,
             "right": player_run_right,
             "left": player_run_left,
-            "jump_idle": [player_jump_idle],  # Прыжок на месте
-            "jump_move": [player_jump_move],  # Прыжок в движении
+            "jump_idle": player_jump_idle,  # Прыжок на месте
+            "jump_move": player_jump_move,  # Прыжок в движении
         }
         self.current_anim = "idle"
         self.anim_index = 0
@@ -187,11 +187,12 @@ class Enemy(pygame.sprite.Sprite):
             self.vel_x *= -1
 
 # Функция для генерации платформ
-def generate_platforms(y_start):
+def generate_platforms(y_start, player_x):
     platforms = []
     y = y_start
     for _ in range(5):  # Генерация 5 платформ на каждом уровне
-        x = random.randint(20, WIDTH - 250)  # Ограничение, чтобы платформы не выходили за экран
+        # Горизонтальное расстояние не должно быть слишком большим
+        x = random.randint(max(0, player_x - 200), min(WIDTH - 120, player_x + 200))
         y -= random.randint(80, 120)  # Расстояние между платформами от 80 до 120 пикселей
         width = random.randint(3, 5)  # Ширина платформы (3-5 блоков)
         platforms.append(Platform(x, y, width))
@@ -262,7 +263,7 @@ def main():
     # Генерация начальных платформ
     platform_list = [
         Platform(20, HEIGHT - 50, 19),  # Платформа под игроком
-        *generate_platforms(HEIGHT - 150)  # Генерация остальных платформ
+        *generate_platforms(HEIGHT - 150,  player.rect.x)  # Генерация остальных платформ
     ]
     all_sprites.add(platform_list)
     platforms.add(platform_list)
@@ -327,7 +328,7 @@ def main():
 
             # Генерация новых платформ и врагов
             if len(platforms) < 10:  # Поддерживаем количество платформ
-                new_platforms = generate_platforms(min([plat.rect.y for plat in platforms]) - 120)
+                new_platforms = generate_platforms(min([plat.rect.y for plat in platforms]) - 120, player.rect.x)
                 all_sprites.add(new_platforms)
                 platforms.add(new_platforms)
 
