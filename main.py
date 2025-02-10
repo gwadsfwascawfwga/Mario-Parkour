@@ -50,6 +50,10 @@ player_run_right = load_textures("sprites/animation", (40, 40))
 player_run_left = load_textures("sprites/animation", (40, 40), flip=True)
 enemy_texture = pygame.transform.scale(pygame.image.load("sprites/enemy.png"), (40, 40))
 
+# Загрузка текстур для прыжка
+player_jump_idle = pygame.transform.scale(pygame.image.load("sprites/jump_idle.png"), (40, 40))  # Прыжок на месте
+player_jump_move = pygame.transform.scale(pygame.image.load("sprites/jump_move.png"), (40, 40))  # Прыжок в движении
+
 # Шрифт для счета и меню
 font = pygame.font.Font(None, 36)
 
@@ -60,7 +64,9 @@ class Player(pygame.sprite.Sprite):
         self.animations = {
             "idle": player_idle,
             "right": player_run_right,
-            "left": player_run_left
+            "left": player_run_left,
+            "jump_idle": [player_jump_idle],  # Прыжок на месте
+            "jump_move": [player_jump_move],  # Прыжок в движении
         }
         self.current_anim = "idle"
         self.anim_index = 0
@@ -75,14 +81,17 @@ class Player(pygame.sprite.Sprite):
         self.score = 0
         self.last_update = pygame.time.get_ticks()
         self.anim_delay = 100
+        self.is_jumping = False  # Флаг для отслеживания прыжка
+        self.facing_left = False  # Направление взгляда игрока (влево/вправо)
 
     def update(self):
         now = pygame.time.get_ticks()
         # Обновление анимации
         if now - self.last_update > self.anim_delay:
             self.last_update = now
-            self.anim_index = (self.anim_index + 1) % len(self.animations[self.current_anim])
-            self.image = self.animations[self.current_anim][self.anim_index]
+            if not self.is_jumping:  # Обновляем анимацию только если не в прыжке
+                self.anim_index = (self.anim_index + 1) % len(self.animations[self.current_anim])
+                self.image = self.animations[self.current_anim][self.anim_index]
 
         # Гравитация
         self.vel_y += 0.5
@@ -92,12 +101,24 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += self.vel_x
 
         # Определение направления анимации
-        if self.vel_x > 0:
-            self.current_anim = "right"
-        elif self.vel_x < 0:
-            self.current_anim = "left"
+        if self.is_jumping:
+            if self.vel_x == 0:  # Прыжок на месте
+                self.current_anim = "jump_idle"
+                self.image = self.animations["jump_idle"][0]
+            else:  # Прыжок в движении
+                self.current_anim = "jump_move"
+                self.image = self.animations["jump_move"][0]
+                if self.vel_x < 0:  # Если движется влево, отзеркаливаем текстуру
+                    self.image = pygame.transform.flip(self.image, True, False)
         else:
-            self.current_anim = "idle"
+            if self.vel_x > 0:
+                self.current_anim = "right"
+                self.facing_left = False
+            elif self.vel_x < 0:
+                self.current_anim = "left"
+                self.facing_left = True
+            else:
+                self.current_anim = "idle"
 
         # Ограничение на выход за границы экрана
         if self.rect.left < 0:
@@ -109,6 +130,7 @@ class Player(pygame.sprite.Sprite):
         if self.on_ground:
             self.vel_y = self.jump_power
             self.on_ground = False
+            self.is_jumping = True  # Устанавливаем флаг прыжка
 
     def move_left(self):
         self.vel_x = -self.speed
@@ -118,6 +140,11 @@ class Player(pygame.sprite.Sprite):
 
     def stop(self):
         self.vel_x = 0
+
+    def check_ground(self):
+        # Проверка, находится ли игрок на земле
+        if self.vel_y == 0 and self.on_ground:
+            self.is_jumping = False  # Сбрасываем флаг прыжка
 
 # Класс платформы
 class Platform(pygame.sprite.Sprite):
@@ -276,6 +303,7 @@ def main():
                     player.rect.bottom = hits[0].rect.top
                     player.on_ground = True
                     player.vel_y = 0
+                    player.check_ground()  # Проверка, находится ли игрок на земле
 
             # Проверка столкновений с врагами
             if pygame.sprite.spritecollide(player, enemies, False):
