@@ -64,6 +64,7 @@ player_run_right = load_textures("sprites/animation", (40, 40))
 player_run_left = load_textures("sprites/animation", (40, 40), flip=True)
 enemy_texture = pygame.transform.scale(pygame.image.load("sprites/enemy.png"), (40, 40))
 coin_texture = pygame.transform.scale(pygame.image.load("sprites/coin.png"), (20, 20))  # Текстура монетки
+cloud_texture = pygame.image.load("sprites/background.png")  # Текстура облачков
 
 # Загрузка текстур для прыжка
 player_jump_idle = [pygame.transform.scale(pygame.image.load("sprites/jump_idle.png"), (40, 40))]  # Прыжок на месте
@@ -212,6 +213,55 @@ class Coin(pygame.sprite.Sprite):
     def update(self):
         pass
 
+class CloudBackground:
+    def __init__(self):
+        self.cloud_image = cloud_texture
+        self.cloud_width = self.cloud_image.get_width()
+        self.cloud_height = self.cloud_image.get_height()
+        
+        # Создаем большое изображение фона (2x2 облака)
+        self.bg_width = WIDTH * 2
+        self.bg_height = HEIGHT * 2
+        
+        # Создаем поверхность с поддержкой альфа-канала
+        self.background = pygame.Surface((self.bg_width, self.bg_height), pygame.SRCALPHA)
+        
+        # Заполняем фон облаками
+        for x in range(0, self.bg_width, self.cloud_width):
+            for y in range(0, self.bg_height, self.cloud_height):
+                self.background.blit(self.cloud_image, (x, y))
+        
+        self.bg_x = 0
+        self.bg_y = 0
+        self.cloud_speed_x = 1
+        self.cloud_speed_y = 0.1
+
+    def update(self, player_y_velocity):
+        # Движение фона
+        self.bg_x -= self.cloud_speed_x
+        self.bg_y += player_y_velocity * self.cloud_speed_y
+
+        # Возврат фона, если он уходит за границы
+        if self.bg_x + self.bg_width < 0:
+            self.bg_x = 0
+        if self.bg_y + self.bg_height < 0:
+            self.bg_y = 0
+        if self.bg_x > WIDTH:
+            self.bg_x = -self.bg_width + WIDTH
+        if self.bg_y > HEIGHT:
+            self.bg_y = -self.bg_height + HEIGHT
+
+    def draw(self, screen):
+        # Отрисовка фона
+        screen.blit(self.background, (self.bg_x, self.bg_y))
+        # Если фон уходит за границы, отрисовываем его с другой стороны
+        if self.bg_x < 0:
+            screen.blit(self.background, (self.bg_x + self.bg_width, self.bg_y))
+        if self.bg_y < 0:
+            screen.blit(self.background, (self.bg_x, self.bg_y + self.bg_height))
+        if self.bg_x < 0 and self.bg_y < 0:
+            screen.blit(self.background, (self.bg_x + self.bg_width, self.bg_y + self.bg_height))
+
 # Функция для генерации платформ и монеток
 def generate_platforms(y_start, player_x):
     platforms = []
@@ -313,6 +363,9 @@ def main():
     all_sprites.add(coin_list)
     coins.add(coin_list)
 
+    # Создание фона с облаками
+    cloud_background = CloudBackground()
+
     running = True
     game_over = False
     camera_y = 0
@@ -341,6 +394,9 @@ def main():
 
             # Обновление спрайтов
             all_sprites.update()
+
+            # Обновление фона с облаками
+            cloud_background.update(player.vel_y)
 
             # Проверка столкновений игрока с платформами
             hits = pygame.sprite.spritecollide(player, platforms, False)
@@ -400,10 +456,9 @@ def main():
                         enemies.add(enemy)
 
             # Отрисовка
-            bg = pygame.image.load("sprites/bg.jpg")
-            screen.blit(bg, (0, 0))
-            for sprite in all_sprites:
-                screen.blit(sprite.image, sprite.rect)
+            screen.fill((135, 206, 235))  # Голубой фон неба
+            cloud_background.draw(screen)  # Отрисовка облаков
+            all_sprites.draw(screen)  # Отрисовка всех спрайтов
 
             # Отображение счета
             score_text = font.render(f"Score: {player.score}", True, BLACK)
