@@ -20,10 +20,19 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Mario Parkour")
 clock = pygame.time.Clock()
 
-# Воспроизведение музыки
+# Загрузка звуков
+pygame.mixer.music.load('sounds/soundtrack.mp3')  # Фоновая музыка
 pygame.mixer.music.set_volume(0.05)
-pygame.mixer.music.load('sounds/super-mario-saundtrek.mp3')
 pygame.mixer.music.play(-1)
+
+sound_coin = pygame.mixer.Sound("sounds/coins.mp3")  # Звук сбора монетки
+sound_coin.set_volume(0.1)
+
+sound_game_over = pygame.mixer.Sound("sounds/end_game.mp3")  # Звук проигрыша
+sound_game_over.set_volume(0.1)
+
+sound_checkpoint = pygame.mixer.Sound("sounds/points.mp3")  # Звук достижения контрольной точки
+sound_checkpoint.set_volume(0.3)
 
 # Сохранение рекорда
 def save_highscore(score):
@@ -72,7 +81,7 @@ class Player(pygame.sprite.Sprite):
             "right": player_run_right,
             "left": player_run_left,
             "jump_idle": player_jump_idle,  # Прыжок на месте
-            "jump_move": player_jump_move,  # Прыжок в движении
+            "jump_move": player_jump_move,  # Прыжок в движении,
         }
         self.current_anim = "idle"
         self.anim_index = 0
@@ -346,17 +355,17 @@ def main():
             coins_collected = pygame.sprite.spritecollide(player, coins, True)
             if coins_collected:
                 player.score += random.randint(10, 100)  # Добавляем очки за монетки
-                sound_coin = pygame.mixer.Sound("sounds/coin.mp3")
-                pygame.mixer.Sound.set_volume(sound_coin, 0.1)
-                sound_coin.play()
+                sound_coin.play()  # Воспроизводим звук монетки
 
             # Проверка столкновений с врагами
             if pygame.sprite.spritecollide(player, enemies, False):
                 game_over = True
+                sound_game_over.play()  # Воспроизводим звук проигрыша
 
             # Проверка на проигрыш (падение за экран)
             if player.rect.top > HEIGHT:
                 game_over = True
+                sound_game_over.play()  # Воспроизводим звук проигрыша
 
             # Движение камеры вверх
             if player.rect.top < HEIGHT // 3:
@@ -372,9 +381,7 @@ def main():
 
             # Проверка на каждую тысячу
             if player.score % 1000 == 0 and player.score != 0:
-                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
-                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
-                sound_checkpoint.play()
+                sound_checkpoint.play()  # Воспроизводим звук достижения контрольной точки
 
             # Генерация новых платформ и монеток
             if len(platforms) < 10:
