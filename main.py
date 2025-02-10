@@ -20,6 +20,11 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Mario Parkour")
 clock = pygame.time.Clock()
 
+# Воспроизведение музыки
+pygame.mixer.music.set_volume(0.05)
+pygame.mixer.music.load('sounds/super-mario-saundtrek.mp3')
+pygame.mixer.music.play(-1)
+
 # Сохранение рекорда
 def save_highscore(score):
     with open("highscore.txt", "w") as f:
@@ -202,10 +207,13 @@ def generate_platforms(y_start, player_x):
 def start_menu(highscore):
     while True:
         screen.fill(WHITE)
-        title_text = font.render("Mario Parkour", True, BLACK)
-        hs_text = font.render(f"High Score: {highscore}", True, BLACK)
-        start_text = font.render("Press S to Start", True, BLACK)
-        quit_text = font.render("Press Q to Quit", True, BLACK)
+        bg_loader = pygame.image.load("sprites/bg_loader.png")
+        screen.blit(bg_loader, (0, 0))
+
+        title_text = font.render("Mario Parkour", True, WHITE)
+        hs_text = font.render(f"High Score: {highscore}", True, WHITE)
+        start_text = font.render("Press S to Start", True, WHITE)
+        quit_text = font.render("Press Q to Quit", True, WHITE)
 
         screen.blit(title_text, (WIDTH//2 - title_text.get_width()//2, HEIGHT//3))
         screen.blit(hs_text, (WIDTH//2 - hs_text.get_width()//2, HEIGHT//2 - 50))
@@ -228,10 +236,13 @@ def start_menu(highscore):
 # Функция для отображения меню после проигрыша
 def game_over_menu():
     while True:
+        pygame.mixer.music.pause()
         screen.fill(WHITE)
-        title_text = font.render("Game Over", True, BLACK)
-        restart_text = font.render("Press R to Restart", True, BLACK)
-        quit_text = font.render("Press Q to Quit", True, BLACK)
+        bg_loader = pygame.image.load("sprites/bg_loader.png")
+        screen.blit(bg_loader, (0, 0))
+        title_text = font.render("Game Over", True, WHITE)
+        restart_text = font.render("Press R to Restart", True, WHITE)
+        quit_text = font.render("Press Q to Quit", True, WHITE)
 
         screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 3))
         screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2))
@@ -251,10 +262,13 @@ def game_over_menu():
 
 # Основной игровой цикл
 def main():
+    pygame.mixer.music.unpause()
     # Создание групп спрайтов
     all_sprites = pygame.sprite.Group()
     platforms = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
+
+    counters = [0, 0, 0, 0]
 
     # Создание игрока
     player = Player()
@@ -326,6 +340,32 @@ def main():
                 if sprite.rect.top > HEIGHT:
                     sprite.kill()
 
+            # Звук ачивки при 1000/2500/5000
+
+            if player.score >= 500 and counters[0] == 0:
+                counters[0] += 1
+                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
+                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
+                sound_checkpoint.play()
+
+            if player.score >= 1000 and counters[1] == 0:
+                counters[1] += 1
+                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
+                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
+                sound_checkpoint.play()
+
+            if player.score >= 2500 and counters[2] == 0:
+                counters[2] += 1
+                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
+                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
+                sound_checkpoint.play()
+
+            if player.score >= 5000 and counters[2] == 0:
+                counters[3] += 1
+                sound_checkpoint = pygame.mixer.Sound("sounds/get_points.mp3")
+                pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
+                sound_checkpoint.play()
+
             # Генерация новых платформ и врагов
             if len(platforms) < 10:  # Поддерживаем количество платформ
                 new_platforms = generate_platforms(min([plat.rect.y for plat in platforms]) - 120, player.rect.x)
@@ -341,7 +381,8 @@ def main():
                         enemies.add(enemy)
 
             # Отрисовка
-            screen.fill(WHITE)
+            bg = pygame.image.load("sprites/bg.jpg")
+            screen.blit(bg, (0, 0))
             for sprite in all_sprites:
                 screen.blit(sprite.image, sprite.rect)
 
