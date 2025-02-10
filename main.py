@@ -54,6 +54,7 @@ player_idle = [pygame.transform.scale(pygame.image.load("sprites/player.png"), (
 player_run_right = load_textures("sprites/animation", (40, 40))
 player_run_left = load_textures("sprites/animation", (40, 40), flip=True)
 enemy_texture = pygame.transform.scale(pygame.image.load("sprites/enemy.png"), (40, 40))
+coin_texture = pygame.transform.scale(pygame.image.load("sprites/coin.png"), (20, 20))  # Текстура монетки
 
 # Загрузка текстур для прыжка
 player_jump_idle = [pygame.transform.scale(pygame.image.load("sprites/jump_idle.png"), (40, 40))]  # Прыжок на месте
@@ -191,17 +192,35 @@ class Enemy(pygame.sprite.Sprite):
         if self.rect.left < 0 or self.rect.right > WIDTH:
             self.vel_x *= -1
 
-# Функция для генерации платформ
+# Класс монетки
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = coin_texture
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+
+    def update(self):
+        pass
+
+# Функция для генерации платформ и монеток
 def generate_platforms(y_start, player_x):
     platforms = []
+    coins = []
     y = y_start
-    for _ in range(5):  # Генерация 5 платформ на каждом уровне
-        # Горизонтальное расстояние не должно быть слишком большим
+    for _ in range(5):
         x = random.randint(max(0, player_x - 200), min(WIDTH - 120, player_x + 200))
-        y -= random.randint(80, 120)  # Расстояние между платформами от 80 до 120 пикселей
-        width = random.randint(3, 5)  # Ширина платформы (3-5 блоков)
-        platforms.append(Platform(x, y, width))
-    return platforms
+        y -= random.randint(80, 120)
+        width = random.randint(3, 5)
+        platform = Platform(x, y, width)
+        platforms.append(platform)
+
+        # Добавляем монетку на платформу
+        if random.random() < 0.5:  # 50% шанс появления монетки
+            coin = Coin(x + random.randint(0, width * 40 - 20), y - 20)
+            coins.append(coin)
+
+    return platforms, coins
 
 # Функция для отображения стартового меню
 def start_menu(highscore):
@@ -267,18 +286,23 @@ def main():
     all_sprites = pygame.sprite.Group()
     platforms = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
+    coins = pygame.sprite.Group()  # Группа для монеток
 
     # Создание игрока
     player = Player()
     all_sprites.add(player)
 
-    # Генерация начальных платформ
-    platform_list = [
-        Platform(20, HEIGHT - 50, 19),  # Платформа под игроком
-        *generate_platforms(HEIGHT - 150,  player.rect.x)  # Генерация остальных платформ
-    ]
+    # Платформа под игроком
+    start_platform = Platform(20, HEIGHT - 50, 19)  # Широкая платформа под игроком
+    all_sprites.add(start_platform)
+    platforms.add(start_platform)
+
+    # Генерация начальных платформ и монеток
+    platform_list, coin_list = generate_platforms(HEIGHT - 150, player.rect.x)
     all_sprites.add(platform_list)
     platforms.add(platform_list)
+    all_sprites.add(coin_list)
+    coins.add(coin_list)
 
     running = True
     game_over = False
@@ -318,6 +342,14 @@ def main():
                     player.vel_y = 0
                     player.check_ground()  # Проверка, находится ли игрок на земле
 
+            # Проверка столкновений с монетками
+            coins_collected = pygame.sprite.spritecollide(player, coins, True)
+            if coins_collected:
+                player.score += random.randint(10, 100)  # Добавляем очки за монетки
+                sound_coin = pygame.mixer.Sound("sounds/coin.mp3")
+                pygame.mixer.Sound.set_volume(sound_coin, 0.1)
+                sound_coin.play()
+
             # Проверка столкновений с врагами
             if pygame.sprite.spritecollide(player, enemies, False):
                 game_over = True
@@ -344,11 +376,13 @@ def main():
                 pygame.mixer.Sound.set_volume(sound_checkpoint, 0.3)
                 sound_checkpoint.play()
 
-            # Генерация новых платформ и врагов
-            if len(platforms) < 10:  # Поддерживаем количество платформ
-                new_platforms = generate_platforms(min([plat.rect.y for plat in platforms]) - 120, player.rect.x)
+            # Генерация новых платформ и монеток
+            if len(platforms) < 10:
+                new_platforms, new_coins = generate_platforms(min([plat.rect.y for plat in platforms]), player.rect.x)
                 all_sprites.add(new_platforms)
                 platforms.add(new_platforms)
+                all_sprites.add(new_coins)
+                coins.add(new_coins)
 
                 # Генерация врагов с учетом текущего счета
                 current_enemy_spawn_chance = enemy_spawn_chance + (player.score // 100) * 0.01
